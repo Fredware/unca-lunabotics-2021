@@ -1,10 +1,19 @@
-// Basic demo for accelerometer/gyro readings from Adafruit ISM330DHCX
+/**
+ * Author: 
+ *  Fredi R. Mino
+ * Date: 
+ *  Apr 14, 2021
+ * 
+ * Description:
+ *  This program communicates with an ISM330DLC sensor using I2C. It reads 6 values for linear
+ *  acceleration and angular velocity. Then, it formats these values so that they can be sent
+ *  to a ROS topic using the Arduino rosserial library.
+*/
 
 #include <Adafruit_ISM330DHCX.h>
 
 #include <ros.h>
-#include <std_msgs/Float32.h>
-//#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Imu.h>
 
 #define BAUD 115200
 #define PUB_INTERVAL 1// [millis]
@@ -13,16 +22,11 @@ Adafruit_ISM330DHCX ism330dhcx;
 
 ros::NodeHandle nh;
 
-std_msgs::Float32 msg;
-//sensor_msgs::Imu msg;
+sensor_msgs::Imu msg;
 ros::Publisher imu_pub("my_imu", &msg);
 
 void setup(void) {
-/*****************************************SERIAL**********************************************/  
-//  Serial.begin(115200);
-//  Serial.println("Adafruit ISM330DHCX test!");
-
-/*****************************************SENSOR**********************************************/  
+/*****************************************SENSOR*********************************************/
   ism330dhcx.begin_I2C();
 
   ism330dhcx.setAccelRange(LSM6DS_ACCEL_RANGE_2_G);
@@ -40,7 +44,7 @@ void setup(void) {
   nh.advertise(imu_pub);
 }
 
-long pub_timer;
+unsigned long pub_timer;
 
 void loop() {
   sensors_event_t accel;
@@ -50,28 +54,19 @@ void loop() {
   if( millis() > pub_timer){
    ism330dhcx.getEvent(&accel, &gyro, &temp); 
 
-   msg.data = accel.acceleration.x;
-   imu_pub.publish(&msg);
-   msg.data = accel.acceleration.y;
-   imu_pub.publish(&msg);
-   msg.data = accel.acceleration.z;
+   msg.header.stamp = nh.now();
+   
+   msg.angular_velocity.x = gyro.gyro.x;
+   msg.angular_velocity.y = gyro.gyro.y;
+   msg.angular_velocity.z = gyro.gyro.z;
+
+   msg.linear_acceleration.x = accel.acceleration.x;
+   msg.linear_acceleration.y = accel.acceleration.y;
+   msg.linear_acceleration.z = accel.acceleration.z;
 
    imu_pub.publish(&msg);   
    pub_timer = millis() + PUB_INTERVAL;
   }
-
+  
   nh.spinOnce();
-
-
-/*****************************************SERIAL**********************************************/  
-//  Serial.print(accel.acceleration.x);
-//  Serial.print(","); Serial.print(accel.acceleration.y);
-//  Serial.print(","); Serial.print(accel.acceleration.z);
-//  Serial.print(",");
-//
-//  Serial.print(gyro.gyro.x);
-//  Serial.print(","); Serial.print(gyro.gyro.y);
-//  Serial.print(","); Serial.print(gyro.gyro.z);
-//  Serial.println();
-//  delay(1000);
 }
