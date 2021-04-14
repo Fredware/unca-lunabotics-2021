@@ -4,12 +4,17 @@
 
 #include <ros.h>
 #include <std_msgs/Float32.h>
+//#include <sensor_msgs/Imu.h>
+
+#define BAUD 115200
+#define PUB_INTERVAL 1// [millis]
 
 Adafruit_ISM330DHCX ism330dhcx;
 
 ros::NodeHandle nh;
 
 std_msgs::Float32 msg;
+//sensor_msgs::Imu msg;
 ros::Publisher imu_pub("my_imu", &msg);
 
 void setup(void) {
@@ -30,6 +35,7 @@ void setup(void) {
   ism330dhcx.configInt2(false, true, false); // gyro DRDY on INT2
 
 /*****************************************NODE**********************************************/  
+  nh.getHardware()->setBaud(BAUD);
   nh.initNode();
   nh.advertise(imu_pub);
 }
@@ -43,9 +49,15 @@ void loop() {
 
   if( millis() > pub_timer){
    ism330dhcx.getEvent(&accel, &gyro, &temp); 
-   msg.data = accel.acceleration.z;
+
+   msg.data = accel.acceleration.x;
    imu_pub.publish(&msg);
-   pub_timer = millis() + 1000;
+   msg.data = accel.acceleration.y;
+   imu_pub.publish(&msg);
+   msg.data = accel.acceleration.z;
+
+   imu_pub.publish(&msg);   
+   pub_timer = millis() + PUB_INTERVAL;
   }
 
   nh.spinOnce();
